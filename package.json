@@ -1,0 +1,70 @@
+{
+  "name": "eric-agents",
+  "version": "1.0.0",
+  "description": "AI agent system for Eric's businesses (STS, PDC, Personal)",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "eric-agents-mcp": "./dist/mcp-server/index.js"
+  },
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "build:mcp": "tsc && chmod +x dist/mcp-server/index.js",
+    "mcp": "tsx src/mcp-server/index.ts",
+    "start": "node dist/index.js",
+    "bot": "tsx src/telegram-bot.ts",
+    "api": "tsx src/api-server.ts",
+    "agent:research:personal": "tsx src/agents/personal/lead-research.ts",
+    "agent:research:pdc": "tsx src/agents/pdc/lead-research.ts",
+    "agent:research:sts": "tsx src/agents/sts/lead-research.ts",
+    "agent:content:pdc": "tsx src/agents/pdc/social-content.ts",
+    "agent:content:sts": "tsx src/agents/sts/social-content.ts",
+    "agent:sales:pdc": "tsx src/agents/pdc/sales-nurture.ts",
+    "agent:sales:sts": "tsx src/agents/sts/sales-nurture.ts",
+    "agent:leadgen:pdc": "tsx src/agents/pdc/lead-generation.ts",
+    "agent:leadgen:sts": "tsx src/agents/sts/lead-generation.ts",
+    "test:connection": "tsx scripts/test-connection.ts",
+    "test:agent:research:personal": "tsx scripts/test-agent-research-personal.ts",
+    "test:agent:research:pdc": "tsx scripts/test-agent-research-pdc.ts",
+    "test:agent:research:sts": "tsx scripts/test-agent-research-sts.ts",
+    "test:agent:content:pdc": "tsx scripts/test-agent-content-pdc.ts",
+    "test:agent:content:sts": "tsx scripts/test-agent-content-sts.ts",
+    "test:agent:sales:pdc": "tsx scripts/test-agent-sales-pdc.ts",
+    "test:agent:sales:sts": "tsx scripts/test-agent-sales-sts.ts",
+    "test:agent:leadgen:pdc": "tsx scripts/test-agent-leadgen-pdc.ts",
+    "test:agent:leadgen:sts": "tsx scripts/test-agent-leadgen-sts.ts",
+    "test:all": "npm run test:connection && npm run test:agent:leadgen:sts && npm run test:agent:sales:pdc",
+    "test:all:agents": "npm run test:agent:research:personal && npm run test:agent:research:pdc && npm run test:agent:research:sts && npm run test:agent:content:pdc && npm run test:agent:content:sts && npm run test:agent:sales:pdc && npm run test:agent:sales:sts && npm run test:agent:leadgen:pdc && npm run test:agent:leadgen:sts"
+  },
+  "keywords": [
+    "ai",
+    "agents",
+    "anthropic",
+    "claude"
+  ],
+  "author": "Eric",
+  "license": "MIT",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.24.0",
+    "@modelcontextprotocol/sdk": "^1.25.1",
+    "@supabase/supabase-js": "^2.39.0",
+    "@tavily/core": "^0.6.4",
+    "@trigger.dev/sdk": "^3.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.0",
+    "node-telegram-bot-api": "^0.64.0",
+    "openai": "^4.28.0",
+    "pino": "^10.1.0",
+    "pino-pretty": "^13.1.3",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^20.11.0",
+    "@types/node-telegram-bot-api": "^0.64.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.0"
+  }
+}

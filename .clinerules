@@ -1,0 +1,784 @@
+# Eric's AI Agent System - Architecture Blueprint
+
+This file defines the AI agent architecture for Eric's multi-agent system serving three business contexts: Personal, PDC (Players Development Club), and STS (Sino Technology Solutions).
+
+**CRITICAL**: Read this file at the start of every session. Work retroactively with existing projects. Maintain consistency as you continue building.
+
+---
+
+## 1. Tech Stack
+
+### Core Technologies
+- **Runtime**: Node.js 20+ with TypeScript 5.3+
+- **Build**: tsx for development, tsc for production builds
+- **Module System**: ES Modules (type: "module" in package.json)
+
+### Database & Storage
+- **Primary Database**: Supabase (PostgreSQL 15+)
+- **Vector Search**: pgvector extension (dimension: 3072)
+- **Migrations**: SQL files in `supabase/migrations/`
+
+### AI & LLM
+- **Primary LLM**: Claude API (Anthropic SDK v0.24+)
+  - Models: claude-opus-4, claude-sonnet-4, claude-haiku-4
+  - Default: Sonnet (best cost/performance balance)
+- **Embeddings**: OpenAI text-embedding-3-large (3072 dimensions)
+
+### Job Scheduling
+- **Orchestration**: Trigger.dev v3.0+
+- **Scheduled Tasks**: Research agents run on intervals, content agents run on demand
+
+### Deployment
+- **Platform**: Railway
+- **Containerization**: Docker with multi-stage builds
+- **Port**: 3000 (configurable via PORT env var)
+
+### Additional Integrations
+- **Messaging**: Telegram Bot API (for notifications and manual triggers)
+- **HTTP Server**: Native Node.js http module
+
+---
+
+## 2. Agent Specifications
+
+### 2.1 Personal Lead Research Agent
+**File**: `src/agents/personal/lead-research.ts`
+
+**Purpose**: Research potential collaborators, speakers, and opportunities for Eric's personal brand
+
+**Business Context**:
+- Eric runs Unsupervised Learning (newsletter/podcast on AI, security, tech)
+- Needs to identify interesting people for interviews, collaborations
+- Focus: thought leaders in AI, security, technology, philosophy
+
+**Input Parameters**:
+- `personName`: Full name of person to research
+- `context`: Brief context (e.g., "AI researcher", "security expert")
+
+**Research Tasks**:
+1. Professional background and expertise
+2. Recent work, publications, talks
+3. Social media presence and reach
+4. Potential collaboration angles
+5. Contact information discovery
+
+**Output Storage**: `memories` table with context='personal'
+
+**Scoring Criteria** (1-10):
+- Expertise relevance: 0-3 points
+- Audience reach: 0-3 points
+- Collaboration fit: 0-2 points
+- Availability signals: 0-2 points
+
+### 2.2 PDC Lead Research Agent
+**File**: `src/agents/pdc/lead-research.ts`
+
+**Purpose**: Identify athletes, parents, NIL companies, and market opportunities for Players Development Club
+
+**Business Context**:
+- PDC helps young athletes with skills development and NIL monetization
+- Target markets: Tampa Bay, Miami, Orlando (Florida focus)
+- Focus: baseball, football, basketball athletes aged 13-22
+
+**Input Parameters**:
+- `leadType`: 'athlete', 'collaboration', 'market'
+- `searchQuery`: Name or market identifier
+- `location`: Geographic focus (default: Tampa Bay)
+
+**Research Tasks (leadType='athlete')**:
+1. Athletic performance and stats
+2. Social media presence and engagement
+3. Current NIL deals or opportunities
+4. Family/parent involvement
+5. High school/college affiliation
+
+**Research Tasks (leadType='collaboration')**:
+1. NIL platforms and companies
+2. Sports tech vendors
+3. Training facilities
+4. Wealth managers targeting athletes
+5. Brand partnerships
+
+**Output Storage**: `pdc_leads` table
+
+**Scoring Criteria** (1-100):
+- Athletic potential: 0-30 points
+- Social media reach: 0-25 points
+- Geographic fit: 0-20 points
+- Engagement likelihood: 0-15 points
+- Financial opportunity: 0-10 points
+
+### 2.3 STS Lead Research Agent
+**File**: `src/agents/sts/lead-research.ts`
+
+**Purpose**: Research enterprise technology prospects and decision-makers for Sino Technology Solutions
+
+**Business Context**:
+- STS provides IT consulting, cloud migration, cybersecurity
+- Target: Mid-market to enterprise companies (50-5000 employees)
+- Focus: Companies undergoing digital transformation
+
+**Input Parameters**:
+- `companyName`: Company to research
+- `industry`: Optional industry filter
+- `contactName`: Optional specific decision-maker
+
+**Research Tasks**:
+1. Company overview (size, industry, revenue)
+2. Technology stack and pain points
+3. Recent news, funding, expansions
+4. Decision-maker identification (CTO, CIO, CISO)
+5. Current vendors and competitors
+6. Budget signals (hiring, funding, growth)
+
+**Output Storage**: `sts_companies` table
+
+**Scoring Criteria** (1-100):
+- Company size fit: 0-20 points
+- Tech maturity gap: 0-25 points
+- Budget signals: 0-20 points
+- Decision-maker access: 0-15 points
+- Competitive positioning: 0-20 points
+
+### 2.4 PDC Social/Content Agent
+**File**: `src/agents/pdc/social-content.ts`
+
+**Purpose**: Generate social media content for PDC across platforms
+
+**Business Context**:
+- Platforms: Instagram (primary), LinkedIn, Facebook, TikTok
+- Content themes: athlete development, NIL education, success stories, training tips
+- Voice: Encouraging, educational, community-focused
+
+**Input Parameters**:
+- `action`: 'generate' | 'schedule' | 'analyze'
+- `topic`: Content theme or source material
+- `platform`: Target platform (default: 'instagram')
+
+**Content Generation Process**:
+1. Pull from `content_library` (videos, articles, quotes)
+2. Extract key insights and hooks
+3. Format for target platform (character limits, hashtags)
+4. Generate platform-specific variations
+5. Store in `social_queue` with status='draft'
+
+**Platform Requirements**:
+- Instagram: 2200 char limit, 5-10 hashtags, visual-first
+- LinkedIn: Professional tone, longer form okay
+- Facebook: Community engagement focus
+- TikTok: Trend-aware, short-form video captions
+
+### 2.5 STS Social/Content Agent
+**File**: `src/agents/sts/social-content.ts`
+
+**Purpose**: Generate B2B social content for Sino Technology Solutions
+
+**Business Context**:
+- Platforms: LinkedIn (primary), Twitter/X
+- Content themes: digital transformation, cybersecurity, cloud migration, IT strategy
+- Voice: Professional, authoritative, insights-driven
+
+**Input Parameters**:
+- `action`: 'generate' | 'schedule' | 'analyze'
+- `topic`: Content theme or case study
+- `platform`: Target platform (default: 'linkedin')
+
+**Content Generation Process**:
+1. Pull from `content_library` (case studies, tech insights)
+2. Extract business value and technical insights
+3. Format for B2B audience
+4. Add relevant industry hashtags
+5. Store in `social_queue` with status='draft'
+
+**Platform Requirements**:
+- LinkedIn: 3000 char limit, thought leadership tone, industry hashtags
+- Twitter/X: 280 char, thread-aware, tech-focused hashtags
+
+---
+
+## 3. Database Schema & Conventions
+
+### Tables Overview
+
+#### agent_runs
+**Purpose**: Audit log for all agent executions
+
+**Key Fields**:
+- `agent_name`: e.g., 'lead-research', 'social-content'
+- `context`: 'personal' | 'pdc' | 'sts'
+- `trigger_type`: 'manual' | 'scheduled' | 'event' | 'webhook'
+- `status`: 'running' | 'completed' | 'failed'
+- `input_data`, `output_data`: JSONB
+
+**Usage Pattern**:
+```typescript
+const runId = await logAgentRun(agentName, context, triggerType, inputData);
+// ... agent execution ...
+await completeAgentRun(runId, outputData);
+```
+
+#### memories
+**Purpose**: Vector storage for semantic search across contexts
+
+**Key Fields**:
+- `context`: 'personal' | 'pdc' | 'sts' | 'shared'
+- `category`: 'knowledge' | 'entity' | 'conversation' | 'decision'
+- `content`: Full text to embed and search
+- `embedding`: vector(3072)
+- `metadata`: JSONB for flexible attributes
+
+**Usage Pattern**:
+```typescript
+await storeMemory(context, category, content, metadata, source);
+const results = await searchMemories(query, context, limit);
+```
+
+#### pdc_leads
+**Purpose**: PDC prospect tracking
+
+**Key Fields**:
+- `lead_type`: 'athlete' | 'collaboration' | 'market'
+- `research_data`: JSONB with full research report
+- `score`: 1-100 qualification score
+- `status`: 'new' | 'contacted' | 'qualified' | 'converted' | 'lost'
+
+#### sts_companies
+**Purpose**: STS enterprise prospect tracking
+
+**Key Fields**:
+- `research_data`: JSONB with full research report
+- `score`: 1-100 qualification score
+- `status`: 'new' | 'contacted' | 'qualified' | 'proposal' | 'won' | 'lost'
+
+#### content_library
+**Purpose**: Source content for social media repurposing
+
+**Key Fields**:
+- `context`: 'pdc' | 'sts'
+- `content_type`: 'video' | 'article' | 'podcast' | 'notes' | 'quote'
+- `key_quotes`: JSONB array
+- `themes`: JSONB array
+- `status`: 'draft' | 'processed' | 'archived'
+
+#### social_queue
+**Purpose**: Social media scheduling and publishing
+
+**Key Fields**:
+- `context`: 'pdc' | 'sts'
+- `platform`: 'instagram' | 'linkedin' | 'x' | 'facebook' | 'youtube'
+- `post_type`: 'single' | 'carousel' | 'thread' | 'reel_caption' | 'story'
+- `status`: 'draft' | 'scheduled' | 'published' | 'failed'
+- `engagement_metrics`: JSONB
+
+### Naming Conventions
+- **Tables**: snake_case, plural nouns
+- **Fields**: snake_case
+- **Indexes**: `idx_<table>_<field>`
+- **Functions**: snake_case, verb_noun pattern
+
+---
+
+## 4. Prompt Templates
+
+### 4.1 Research Agent System Prompt Template
+
+```
+You are a research agent for {CONTEXT_NAME}.
+
+BUSINESS CONTEXT:
+{BUSINESS_CONTEXT_DESCRIPTION}
+
+YOUR TASK:
+Research {TARGET_DESCRIPTION} and provide a comprehensive qualification report.
+
+RESEARCH AREAS:
+{RESEARCH_AREAS_LIST}
+
+OUTPUT FORMAT:
+Return a JSON object with:
+- summary: Brief 2-3 sentence overview
+- detailed_findings: Object with research area keys
+- qualification_score: Integer 1-{MAX_SCORE}
+- recommendation: 'high_priority' | 'medium_priority' | 'low_priority' | 'disqualify'
+- next_steps: Array of suggested actions
+- sources: Array of URLs consulted
+
+SCORING CRITERIA:
+{SCORING_CRITERIA_BREAKDOWN}
+
+Be thorough, accurate, and focused on actionable insights.
+```
+
+### 4.2 Social Content Agent System Prompt Template
+
+```
+You are a social media content creator for {CONTEXT_NAME}.
+
+BRAND VOICE:
+{VOICE_DESCRIPTION}
+
+PLATFORM: {PLATFORM_NAME}
+Platform constraints:
+- Character limit: {CHAR_LIMIT}
+- Hashtag strategy: {HASHTAG_STRATEGY}
+- Content style: {CONTENT_STYLE}
+
+SOURCE MATERIAL:
+{SOURCE_CONTENT}
+
+YOUR TASK:
+Create {POST_TYPE} content that:
+1. Captures attention in first line
+2. Delivers value or insight
+3. Includes clear call-to-action
+4. Uses platform-appropriate formatting
+5. Incorporates relevant hashtags
+
+OUTPUT FORMAT:
+Return a JSON object with:
+- post_text: Full post copy
+- hashtags: Array of hashtags
+- content_type: Type of post
+- estimated_engagement: 'low' | 'medium' | 'high'
+- alternative_versions: Array of 2 alternative versions
+
+Optimize for engagement while maintaining brand authenticity.
+```
+
+---
+
+## 5. Coding Conventions
+
+### File Structure Standards
+```
+src/
+├── agents/
+│   ├── {context}/
+│   │   ├── lead-research.ts      # Research agent
+│   │   └── social-content.ts     # Content agent
+├── shared/
+│   ├── supabase.ts               # DB client + logging
+│   ├── llm.ts                    # Claude client + helpers
+│   ├── memory.ts                 # Vector memory operations
+│   └── utils.ts                  # Shared utilities
+├── types/
+│   ├── database.ts               # DB table interfaces
+│   └── agents.ts                 # Agent input/output types
+├── index.ts                      # HTTP server
+└── trigger.ts                    # Scheduled jobs
+```
+
+### TypeScript Standards
+- **Strict mode**: Always enabled
+- **No `any` types**: Use `unknown` and type guards
+- **Interfaces over types**: For object shapes
+- **Named exports**: Prefer over default exports
+- **Async/await**: Always use for promises (no .then chains)
+
+### Error Handling Pattern
+```typescript
+try {
+  const runId = await logAgentRun(agentName, context, triggerType, inputData);
+
+  // Agent logic here
+  const result = await performResearch(input);
+
+  await completeAgentRun(runId, result);
+  return result;
+
+} catch (error) {
+  console.error(`[${agentName}] Error:`, error);
+  if (runId) {
+    await completeAgentRun(runId, null, error.message);
+  }
+  throw error;
+}
+```
+
+### Logging Standards
+- **Console levels**: Use appropriate levels (error, warn, info, debug)
+- **Structured logging**: Include agent name, context, timestamp
+- **Sensitive data**: Never log API keys, full contact info
+- **Format**: `[agent-name] Context: message`
+
+Example:
+```typescript
+console.log(`[lead-research] PDC: Starting research for ${leadName}`);
+console.error(`[social-content] STS: Failed to generate content:`, error);
+```
+
+### Environment Variables
+- **Required vars**: Fail fast at startup if missing
+- **Validation**: Check format and accessibility
+- **Naming**: SCREAMING_SNAKE_CASE
+- **Defaults**: Provide sensible defaults where possible
+
+```typescript
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY;
+const PORT = parseInt(process.env.PORT || '3000');
+
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+  throw new Error('Missing required environment variables');
+}
+```
+
+---
+
+## 6. Security Guidelines
+
+### API Key Management
+- **Never hardcode**: All keys in environment variables
+- **Service role only**: Use Supabase service role key (not anon key)
+- **Rotation**: Support key rotation without code changes
+- **Scope**: Use minimum required permissions
+
+### Data Protection
+- **PII handling**: Minimize storage of personal information
+- **Encryption**: Let Supabase handle at-rest encryption
+- **In-transit**: Always use HTTPS/TLS
+- **Retention**: Implement data retention policies
+
+### Input Validation
+- **Always sanitize**: Never trust external input
+- **Type checking**: Validate against TypeScript interfaces
+- **Rate limiting**: Implement on public endpoints
+- **SQL injection**: Use parameterized queries (Supabase handles this)
+
+### Authentication Patterns
+- **API endpoints**: Use API key or JWT validation
+- **Telegram bot**: Validate webhook signatures
+- **Internal calls**: Trust but verify (check signatures)
+
+---
+
+## 7. Cost Optimization
+
+### LLM Usage
+- **Model selection**:
+  - Haiku: Simple classification, formatting tasks ($0.25/MTok)
+  - Sonnet: Default for research and content generation ($3/MTok)
+  - Opus: Only for complex reasoning or critical decisions ($15/MTok)
+
+- **Prompt optimization**:
+  - Keep system prompts concise
+  - Use structured output (JSON mode)
+  - Cache frequently used context
+  - Batch similar requests when possible
+
+- **Token monitoring**:
+  ```typescript
+  const response = await complete(prompt, model);
+  console.log(`Tokens used: ${response.usage.total_tokens}`);
+  ```
+
+### Database Optimization
+- **Index usage**: Ensure all common queries use indexes
+- **Batch operations**: Use batch inserts/updates when possible
+- **Vector search**: Limit result sets (default: 10 results)
+- **Cleanup**: Archive old data regularly
+
+### Memory Management
+- **Selective embedding**: Not all text needs vectorization
+- **Embedding batching**: Batch OpenAI embedding calls
+- **Context limits**: Only embed meaningful, reusable content
+- **Cleanup strategy**: Remove low-value memories periodically
+
+---
+
+## 8. Monitoring & Observability
+
+### Health Checks
+```typescript
+// GET /health endpoint
+{
+  status: 'healthy',
+  timestamp: ISO8601,
+  database: 'connected' | 'error',
+  services: {
+    anthropic: 'available' | 'error',
+    openai: 'available' | 'error',
+    trigger: 'available' | 'error'
+  }
+}
+```
+
+### Metrics to Track
+- **Agent runs**: Count by status (completed, failed)
+- **API latency**: Response times for LLM calls
+- **Database queries**: Slow query detection
+- **Memory usage**: Node.js heap and external memory
+- **Error rates**: By agent and error type
+
+### Logging Strategy
+- **Production**: Info level and above
+- **Development**: Debug level
+- **Error tracking**: Capture full stack traces
+- **Retention**: 30 days for debug logs, 1 year for errors
+
+### Agent Run Analysis
+```sql
+-- Query agent_runs for performance insights
+SELECT
+  agent_name,
+  context,
+  status,
+  COUNT(*) as run_count,
+  AVG(EXTRACT(EPOCH FROM (completed_at - started_at))) as avg_duration_sec
+FROM agent_runs
+WHERE started_at > NOW() - INTERVAL '7 days'
+GROUP BY agent_name, context, status;
+```
+
+---
+
+## 9. Anti-Patterns to Avoid
+
+### ❌ Don't: Mix business contexts
+```typescript
+// BAD: Storing PDC lead in STS table
+await supabase.from('sts_companies').insert({
+  name: 'Athlete Name'  // Wrong context!
+});
+```
+
+✅ **Do**: Keep contexts separate
+```typescript
+// GOOD: Use correct table for context
+await supabase.from('pdc_leads').insert({
+  lead_type: 'athlete',
+  name: 'Athlete Name'
+});
+```
+
+### ❌ Don't: Use Opus for simple tasks
+```typescript
+// BAD: Wasting money on simple formatting
+const result = await completeOpus('Format this as JSON: ' + text);
+```
+
+✅ **Do**: Use appropriate model tier
+```typescript
+// GOOD: Use Haiku for formatting
+const result = await completeHaiku('Format this as JSON: ' + text);
+```
+
+### ❌ Don't: Store everything in memory
+```typescript
+// BAD: Over-embedding increases costs
+await storeMemory('shared', 'knowledge', 'The weather is nice today');
+```
+
+✅ **Do**: Be selective about what gets embedded
+```typescript
+// GOOD: Only store meaningful, reusable insights
+if (isSignificantInsight(content)) {
+  await storeMemory(context, 'knowledge', content);
+}
+```
+
+### ❌ Don't: Forget error handling
+```typescript
+// BAD: Unhandled promise rejection
+const result = await performResearch(input);
+```
+
+✅ **Do**: Always handle errors
+```typescript
+// GOOD: Graceful error handling with logging
+try {
+  const result = await performResearch(input);
+  return result;
+} catch (error) {
+  console.error('[agent] Research failed:', error);
+  await logFailure(runId, error);
+  throw error;
+}
+```
+
+### ❌ Don't: Hardcode business logic
+```typescript
+// BAD: Magic numbers and hardcoded thresholds
+if (score > 75) { /* qualify lead */ }
+```
+
+✅ **Do**: Use named constants and configuration
+```typescript
+// GOOD: Clear, configurable thresholds
+const QUALIFICATION_THRESHOLD = 75;
+if (score > QUALIFICATION_THRESHOLD) { /* qualify lead */ }
+```
+
+### ❌ Don't: Ignore rate limits
+```typescript
+// BAD: Hammering APIs without throttling
+for (const lead of leads) {
+  await researchLead(lead); // Could hit rate limits
+}
+```
+
+✅ **Do**: Implement rate limiting and batching
+```typescript
+// GOOD: Batch processing with delays
+for (const batch of chunk(leads, 5)) {
+  await Promise.all(batch.map(researchLead));
+  await sleep(1000); // Respect rate limits
+}
+```
+
+### ❌ Don't: Return unstructured LLM output
+```typescript
+// BAD: Raw text response
+const response = await complete(prompt);
+return response.text; // Unpredictable format
+```
+
+✅ **Do**: Use structured output (JSON mode)
+```typescript
+// GOOD: Validated structured response
+const response = await complete(prompt + '\nReturn valid JSON.');
+return JSON.parse(response.text); // Predictable format
+```
+
+---
+
+## 10. Development Workflow
+
+### Starting a New Session
+1. Read this `.clinerules` file
+2. Check `SETUP_STATUS.md` for current state
+3. Review recent agent_runs for context
+4. Verify environment variables are set
+
+### Building a New Agent
+1. Copy existing agent template from same context
+2. Define TypeScript interfaces in `types/agents.ts`
+3. Implement core logic with error handling
+4. Add logging at key checkpoints
+5. Test with manual trigger before scheduling
+6. Update documentation
+
+### Adding Database Changes
+1. Create new migration file: `00X_description.sql`
+2. Test migration locally
+3. Update `types/database.ts` with new schema
+4. Update any affected agents
+5. Document changes in comments
+
+### Deployment Checklist
+- [ ] All TypeScript compiles without errors
+- [ ] Environment variables documented in `.env.example`
+- [ ] Database migrations tested
+- [ ] Manual agent triggers tested
+- [ ] Error handling verified
+- [ ] Logging added for debugging
+- [ ] No hardcoded secrets
+- [ ] README updated if needed
+
+---
+
+## 11. Quick Reference
+
+### Common Commands
+```bash
+# Development
+npm run dev                          # Start with hot reload
+npm run build                        # Compile TypeScript
+npm start                            # Run production build
+
+# Manual agent triggers
+npm run agent:research:personal "Name" "Context"
+npm run agent:research:pdc athlete "Name"
+npm run agent:research:sts "Company Name"
+npm run agent:content:pdc generate "Topic"
+npm run agent:content:sts generate "Topic"
+
+# Telegram bot
+npm run bot                          # Start Telegram bot
+```
+
+### Environment Variables
+```bash
+SUPABASE_URL=https://xxx.supabase.co
+SUPABASE_SERVICE_KEY=eyJ...
+ANTHROPIC_API_KEY=sk-ant-...
+OPENAI_API_KEY=sk-...
+TRIGGER_API_KEY=tr_...
+PORT=3000
+NODE_ENV=production
+```
+
+### Key Files to Reference
+- `src/shared/supabase.ts` - Database operations
+- `src/shared/llm.ts` - Claude API usage
+- `src/shared/memory.ts` - Vector memory
+- `supabase/migrations/001_schema.sql` - Database schema
+- `SETUP_STATUS.md` - Project status
+
+---
+
+## 12. Business Context Deep Dive
+
+### Personal Context
+**Eric's Personal Brand**: Unsupervised Learning
+- Newsletter subscribers: ~100K
+- Podcast: Weekly episodes on AI, security, tech trends
+- Speaking: Conferences, corporate events
+- Writing: Blog posts, analysis, commentary
+
+**Target Collaborators**:
+- AI researchers and practitioners
+- Cybersecurity experts
+- Technology philosophers
+- Innovation leaders
+- Authors and content creators
+
+### PDC (Players Development Club)
+**Mission**: Help young athletes develop skills and monetize through NIL
+
+**Services**:
+- Skills training (sport-specific coaching)
+- NIL deal sourcing and negotiation
+- Social media building
+- Financial literacy education
+
+**Target Markets**:
+- Geographic: Tampa Bay, Miami, Orlando (Florida)
+- Sports: Baseball, football, basketball
+- Age: 13-22 (high school and college)
+
+**Revenue Model**:
+- Monthly memberships
+- NIL deal commissions
+- Training camps and clinics
+- Brand partnerships
+
+### STS (Sino Technology Solutions)
+**Services**:
+- IT consulting and managed services
+- Cloud migration (AWS, Azure, GCP)
+- Cybersecurity assessments and implementation
+- Digital transformation strategy
+
+**Target Customers**:
+- Company size: 50-5000 employees
+- Industries: Healthcare, finance, manufacturing, retail
+- Pain points: Legacy systems, security gaps, cloud readiness
+- Budget: $50K-$2M annual IT spend
+
+**Revenue Model**:
+- Retainer-based managed services
+- Project-based consulting
+- Security assessment packages
+
+---
+
+## Version History
+- v1.0 (2024-12-31): Initial architecture blueprint
+- Agent status: Infrastructure complete, agents in development
+
+---
+
+**END OF .CLINERULES**
+
+This file should be referenced at the start of every Claude Code session to maintain consistency and context across development work.
