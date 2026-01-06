@@ -1,0 +1,526 @@
+{
+  "name": "AI Agent: LinkedIn Response Analyzer",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "webhook-trigger",
+      "name": "Webhook (LinkedIn Response)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300],
+      "webhookId": "linkedin-response"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "context",
+              "name": "context",
+              "value": "={{ $json.body.context }}",
+              "type": "string"
+            },
+            {
+              "id": "prospect_name",
+              "name": "prospect_name",
+              "value": "={{ $json.body.prospect_name }}",
+              "type": "string"
+            },
+            {
+              "id": "company",
+              "name": "company",
+              "value": "={{ $json.body.company }}",
+              "type": "string"
+            },
+            {
+              "id": "our_message",
+              "name": "our_message",
+              "value": "={{ $json.body.our_message }}",
+              "type": "string"
+            },
+            {
+              "id": "their_response",
+              "name": "their_response",
+              "value": "={{ $json.body.their_response }}",
+              "type": "string"
+            },
+            {
+              "id": "linkedin_url",
+              "name": "linkedin_url",
+              "value": "={{ $json.body.linkedin_url }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "extract-data",
+      "name": "Extract Response Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "=You are an expert at analyzing LinkedIn message responses for sales and partnership outreach.\n\nCONTEXT:\nYou analyze responses to determine:\n1. Sentiment (positive, neutral, negative, objection, question)\n2. Interest Level (0-10)\n3. Response Type (interested, not_interested, needs_info, scheduling, objection, auto_reply)\n4. Key Points - What they said that matters\n5. Recommended Action - What to do next\n6. Reply Template - Suggested response (if appropriate)\n\nSENTIMENT INDICATORS:\n\nPOSITIVE:\n- \"Interested\", \"Tell me more\", \"Let's chat\", \"Great timing\"\n- Questions about services, pricing, process\n- Agreeing to meeting/call\n- Sharing contact info\n\nNEUTRAL:\n- \"Thanks for reaching out\"\n- \"Can you send me more info?\"\n- Non-committal but not rejecting\n\nNEGATIVE/OBJECTION:\n- \"Not interested\", \"No thanks\", \"Remove me\"\n- \"Too busy\", \"Not a fit\", \"Already have a solution\"\n- Budget concerns without curiosity\n\nQUESTION/NEEDS_INFO:\n- Asking specific questions about what you do\n- \"How does this work?\"\n- \"What's the cost?\"\n- \"Tell me about...\"\n\nAUTO_REPLY:\n- \"Out of office\", \"Away\", \"On vacation\"\n- Generic automated responses\n\nINTEREST LEVEL SCORING:\n10 = \"Yes, let's schedule a call this week\"\n8-9 = Asking detailed questions, sharing availability\n6-7 = General interest, needs more info\n4-5 = Lukewarm, non-committal\n2-3 = Soft no or very low priority\n0-1 = Hard no or unsubscribe\n\nRECOMMENDED ACTIONS:\n- schedule_call: They want to talk (send calendar link)\n- send_info: They need more details (send resources)\n- answer_question: They asked specific question (provide answer)\n- follow_up_later: Timing not right now (set reminder)\n- nurture: Interested but not ready (add to long-term)\n- close_lost: Not interested (mark as closed)\n- wait_for_auto_reply: Out of office (follow up when back)\n\nOUTPUT FORMAT (JSON):\n{\n  \"sentiment\": \"positive\",\n  \"interestLevel\": 8,\n  \"responseType\": \"scheduling\",\n  \"keyPoints\": [\"Interested in learning more\", \"Available next week\", \"Wants to discuss infrastructure modernization\"],\n  \"action\": \"schedule_call\",\n  \"reasoning\": \"Strong interest shown, ready to talk, specific timing provided. High priority follow-up.\",\n  \"replyTemplate\": \"Great! Here's my calendar link: [LINK]. Looking forward to discussing how we can help with your infrastructure modernization.\",\n  \"urgency\": \"high\"\n}\n\nBe concise and actionable."
+        },
+        "promptType": "define",
+        "text": "=Analyze this LinkedIn message response:\n\n**Our Original Message:**\n{{ $json.our_message }}\n\n**Their Response:**\n{{ $json.their_response }}\n\n**Context:** {{ $json.context }}\n**Prospect:** {{ $json.prospect_name }} from {{ $json.company }}\n\nProvide analysis as JSON with sentiment, interestLevel, responseType, keyPoints, action, reasoning, replyTemplate, and urgency."
+      },
+      "id": "ai-agent",
+      "name": "AI Response Analyzer",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.6,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "openai-model",
+      "name": "OpenAI GPT-4",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [650, 500],
+      "credentials": {
+        "openAiApi": {
+          "id": "YOUR_OPENAI_CREDENTIAL_ID",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ai_analysis",
+              "name": "ai_analysis",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            },
+            {
+              "id": "sentiment",
+              "name": "sentiment",
+              "value": "={{ JSON.parse($json.output).sentiment }}",
+              "type": "string"
+            },
+            {
+              "id": "interest_level",
+              "name": "interest_level",
+              "value": "={{ JSON.parse($json.output).interestLevel }}",
+              "type": "number"
+            },
+            {
+              "id": "action",
+              "name": "action",
+              "value": "={{ JSON.parse($json.output).action }}",
+              "type": "string"
+            },
+            {
+              "id": "urgency",
+              "name": "urgency",
+              "value": "={{ JSON.parse($json.output).urgency }}",
+              "type": "string"
+            },
+            {
+              "id": "reply_template",
+              "name": "reply_template",
+              "value": "={{ JSON.parse($json.output).replyTemplate }}",
+              "type": "string"
+            },
+            {
+              "id": "context",
+              "name": "context",
+              "value": "={{ $('Extract Response Data').item.json.context }}",
+              "type": "string"
+            },
+            {
+              "id": "prospect_name",
+              "name": "prospect_name",
+              "value": "={{ $('Extract Response Data').item.json.prospect_name }}",
+              "type": "string"
+            },
+            {
+              "id": "linkedin_url",
+              "name": "linkedin_url",
+              "value": "={{ $('Extract Response Data').item.json.linkedin_url }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "parse-analysis",
+      "name": "Parse AI Analysis",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "high-interest",
+              "leftValue": "={{ $json.interest_level }}",
+              "rightValue": 7,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            },
+            {
+              "id": "medium-interest",
+              "leftValue": "={{ $json.interest_level }}",
+              "rightValue": 4,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "route-by-interest",
+      "name": "Route by Interest Level",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "table": {
+          "__rl": true,
+          "value": "linkedin_interactions",
+          "mode": "list"
+        },
+        "filterType": "manual",
+        "matchingColumns": "linkedin_url",
+        "data": {
+          "values": [
+            {
+              "column": "response_received",
+              "value": true
+            },
+            {
+              "column": "response_at",
+              "value": "={{ $now.toISOString() }}"
+            },
+            {
+              "column": "response_type",
+              "value": "={{ $json.sentiment }}"
+            },
+            {
+              "column": "notes",
+              "value": "={{ JSON.stringify({ ai_analysis: $json.ai_analysis, action: $json.action }) }}"
+            },
+            {
+              "column": "status",
+              "value": "responded_high_interest"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "update-high-interest",
+      "name": "Update as High Interest",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1250, 150],
+      "credentials": {
+        "supabaseApi": {
+          "id": "YOUR_SUPABASE_CREDENTIAL_ID",
+          "name": "Eric Agents Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "table": {
+          "__rl": true,
+          "value": "linkedin_interactions",
+          "mode": "list"
+        },
+        "filterType": "manual",
+        "matchingColumns": "linkedin_url",
+        "data": {
+          "values": [
+            {
+              "column": "response_received",
+              "value": true
+            },
+            {
+              "column": "response_at",
+              "value": "={{ $now.toISOString() }}"
+            },
+            {
+              "column": "response_type",
+              "value": "={{ $json.sentiment }}"
+            },
+            {
+              "column": "notes",
+              "value": "={{ JSON.stringify({ ai_analysis: $json.ai_analysis, action: $json.action }) }}"
+            },
+            {
+              "column": "status",
+              "value": "responded_medium_interest"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "update-medium-interest",
+      "name": "Update as Medium Interest",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1250, 350],
+      "credentials": {
+        "supabaseApi": {
+          "id": "YOUR_SUPABASE_CREDENTIAL_ID",
+          "name": "Eric Agents Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "table": {
+          "__rl": true,
+          "value": "linkedin_interactions",
+          "mode": "list"
+        },
+        "filterType": "manual",
+        "matchingColumns": "linkedin_url",
+        "data": {
+          "values": [
+            {
+              "column": "response_received",
+              "value": true
+            },
+            {
+              "column": "response_at",
+              "value": "={{ $now.toISOString() }}"
+            },
+            {
+              "column": "response_type",
+              "value": "={{ $json.sentiment }}"
+            },
+            {
+              "column": "notes",
+              "value": "={{ JSON.stringify({ ai_analysis: $json.ai_analysis, action: $json.action }) }}"
+            },
+            {
+              "column": "status",
+              "value": "responded_not_interested"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "update-not-interested",
+      "name": "Update as Not Interested",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1250, 550],
+      "credentials": {
+        "supabaseApi": {
+          "id": "YOUR_SUPABASE_CREDENTIAL_ID",
+          "name": "Eric Agents Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "=🔥 **HIGH INTEREST RESPONSE**\n\n**From:** {{ $json.prospect_name }}\n**Sentiment:** {{ $json.sentiment }}\n**Interest Level:** {{ $json.interest_level }}/10\n**Urgency:** {{ $json.urgency }}\n\n**Their Response:**\n{{ $('Extract Response Data').item.json.their_response }}\n\n**AI Recommendation:**\n{{ JSON.parse($json.ai_analysis).reasoning }}\n\n**Suggested Reply:**\n{{ $json.reply_template }}\n\n**Action:** {{ $json.action }}",
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "additionalFields": {}
+      },
+      "id": "notify-high-interest",
+      "name": "Telegram Alert (High Interest)",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1450, 150],
+      "credentials": {
+        "telegramApi": {
+          "id": "YOUR_TELEGRAM_CREDENTIAL_ID",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": {
+          "__rl": true,
+          "value": "outreach_queue",
+          "mode": "list"
+        },
+        "data": {
+          "values": [
+            {
+              "column": "context",
+              "value": "={{ $json.context }}"
+            },
+            {
+              "column": "channel",
+              "value": "linkedin"
+            },
+            {
+              "column": "prospect_name",
+              "value": "={{ $json.prospect_name }}"
+            },
+            {
+              "column": "subject",
+              "value": "Follow-up"
+            },
+            {
+              "column": "body",
+              "value": "={{ $json.reply_template }}"
+            },
+            {
+              "column": "scheduled_for",
+              "value": "={{ $now.toISOString() }}"
+            },
+            {
+              "column": "status",
+              "value": "queued"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "queue-reply",
+      "name": "Queue Suggested Reply",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1450, 250],
+      "credentials": {
+        "supabaseApi": {
+          "id": "YOUR_SUPABASE_CREDENTIAL_ID",
+          "name": "Eric Agents Supabase"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook (LinkedIn Response)": {
+      "main": [
+        [
+          {
+            "node": "Extract Response Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Response Data": {
+      "main": [
+        [
+          {
+            "node": "AI Response Analyzer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Response Analyzer": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI GPT-4": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Response Analyzer",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Analysis": {
+      "main": [
+        [
+          {
+            "node": "Route by Interest Level",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Interest Level": {
+      "main": [
+        [
+          {
+            "node": "Update as High Interest",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update as Medium Interest",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update as Not Interested",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update as High Interest": {
+      "main": [
+        [
+          {
+            "node": "Telegram Alert (High Interest)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Queue Suggested Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2026-01-03T00:00:00.000Z",
+  "versionId": "1"
+}

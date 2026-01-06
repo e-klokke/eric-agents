@@ -1,0 +1,464 @@
+{
+  "name": "AI Agent: STS Lead Qualifier",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-trigger",
+      "name": "When clicking 'Test workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "company_name",
+              "name": "company_name",
+              "value": "Tampa General Hospital",
+              "type": "string"
+            },
+            {
+              "id": "website",
+              "name": "website",
+              "value": "tgh.org",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-company",
+      "name": "Company to Research",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://YOUR-APP.up.railway.app/trigger/research/sts",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"companyName\": \"{{ $json.company_name }}\",\n  \"website\": \"{{ $json.website }}\"\n}",
+        "options": {}
+      },
+      "id": "research-company",
+      "name": "Research Company via Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [650, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "Eric Agents API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "research_data",
+              "name": "research_data",
+              "value": "={{ JSON.stringify($json.data) }}",
+              "type": "string"
+            },
+            {
+              "id": "company_name",
+              "name": "company_name",
+              "value": "={{ $('Company to Research').item.json.company_name }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "prepare-for-ai",
+      "name": "Prepare for AI Analysis",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "=You are an expert B2B lead qualifier for Sino Technology Solutions (STS).\n\nSTS BACKGROUND:\n- We partner with Cisco, Dell, Oracle, Lenovo, and HP\n- We serve mid-market companies (100-5000 employees)\n- Focus: IT infrastructure, cloud migration, cybersecurity\n- Target industries: Healthcare, Education, Finance, Government\n- Geography: Florida and Southeast US\n\nIDEAL PROSPECT INDICATORS:\n- Company size: 100-5000 employees\n- Recent growth, funding, or expansion\n- Tech hiring (DevOps, Cloud, Security roles)\n- Legacy tech stack needing modernization\n- Digital transformation initiatives\n- Budget for infrastructure (public companies, funded startups)\n\nYOUR TASK:\nAnalyze the research data provided and determine:\n1. Quality Score (0-10) - How good is this prospect?\n2. Key Fit Factors - What makes them a good/bad fit?\n3. Recommended Action - outreach, nurture, or skip\n4. Priority Level - high, medium, or low\n5. Reasoning - Brief explanation of your decision\n\nOUTPUT FORMAT (JSON):\n{\n  \"score\": 8,\n  \"fitFactors\": [\"Healthcare industry\", \"500 employees\", \"Hiring DevOps\", \"Using legacy Oracle\"],\n  \"action\": \"outreach\",\n  \"priority\": \"high\",\n  \"reasoning\": \"Strong fit: right size, industry, and tech stack modernization needs. Recent job postings indicate growth.\",\n  \"nextSteps\": \"Research CTO/CIO on LinkedIn, then send connection request with infrastructure modernization angle\"\n}\n\nBe analytical but concise. Focus on actionable insights."
+        },
+        "promptType": "define",
+        "text": "=Analyze this company research data and determine if {{ $json.company_name }} is a good STS prospect:\n\n{{ $json.research_data }}\n\nProvide your analysis as JSON with score, fitFactors, action, priority, reasoning, and nextSteps."
+      },
+      "id": "ai-agent",
+      "name": "AI Lead Qualifier Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.6,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "id": "openai-model",
+      "name": "OpenAI GPT-4",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [1050, 500],
+      "credentials": {
+        "openAiApi": {
+          "id": "YOUR_OPENAI_CREDENTIAL_ID",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ai_decision",
+              "name": "ai_decision",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            },
+            {
+              "id": "score",
+              "name": "score",
+              "value": "={{ JSON.parse($json.output).score }}",
+              "type": "number"
+            },
+            {
+              "id": "action",
+              "name": "action",
+              "value": "={{ JSON.parse($json.output).action }}",
+              "type": "string"
+            },
+            {
+              "id": "priority",
+              "name": "priority",
+              "value": "={{ JSON.parse($json.output).priority }}",
+              "type": "string"
+            },
+            {
+              "id": "reasoning",
+              "name": "reasoning",
+              "value": "={{ JSON.parse($json.output).reasoning }}",
+              "type": "string"
+            },
+            {
+              "id": "company_name",
+              "name": "company_name",
+              "value": "={{ $('Company to Research').item.json.company_name }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "parse-ai-decision",
+      "name": "Parse AI Decision",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "high-priority",
+              "leftValue": "={{ $json.score }}",
+              "rightValue": 7,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            },
+            {
+              "id": "medium-priority",
+              "leftValue": "={{ $json.score }}",
+              "rightValue": 4,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "route-by-score",
+      "name": "Route by Score",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [1450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": {
+          "__rl": true,
+          "value": "sts_outbound_prospects",
+          "mode": "list",
+          "cachedResultName": "sts_outbound_prospects"
+        },
+        "data": {
+          "values": [
+            {
+              "column": "company_name",
+              "value": "={{ $json.company_name }}"
+            },
+            {
+              "column": "fit_score",
+              "value": "={{ $json.score }}"
+            },
+            {
+              "column": "outreach_status",
+              "value": "not_contacted"
+            },
+            {
+              "column": "notes",
+              "value": "={{ $json.reasoning }}"
+            },
+            {
+              "column": "metadata",
+              "value": "={{ JSON.stringify({ ai_decision: $json.ai_decision, priority: $json.priority }) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "save-high-priority",
+      "name": "Save High Priority Prospect",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1650, 200],
+      "credentials": {
+        "supabaseApi": {
+          "id": "YOUR_SUPABASE_CREDENTIAL_ID",
+          "name": "Eric Agents Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": {
+          "__rl": true,
+          "value": "sts_outbound_prospects",
+          "mode": "list",
+          "cachedResultName": "sts_outbound_prospects"
+        },
+        "data": {
+          "values": [
+            {
+              "column": "company_name",
+              "value": "={{ $json.company_name }}"
+            },
+            {
+              "column": "fit_score",
+              "value": "={{ $json.score }}"
+            },
+            {
+              "column": "outreach_status",
+              "value": "not_contacted"
+            },
+            {
+              "column": "notes",
+              "value": "={{ $json.reasoning }}"
+            },
+            {
+              "column": "metadata",
+              "value": "={{ JSON.stringify({ ai_decision: $json.ai_decision, priority: $json.priority }) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "save-nurture",
+      "name": "Save to Nurture List",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1650, 400],
+      "credentials": {
+        "supabaseApi": {
+          "id": "YOUR_SUPABASE_CREDENTIAL_ID",
+          "name": "Eric Agents Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "=🔥 **HIGH PRIORITY PROSPECT**\n\n**Company:** {{ $json.company_name }}\n**Score:** {{ $json.score }}/10\n**Action:** {{ $json.action }}\n\n**Reasoning:**\n{{ $json.reasoning }}\n\n**Next Steps:**\n{{ JSON.parse($json.ai_decision).nextSteps }}",
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "additionalFields": {}
+      },
+      "id": "notify-telegram",
+      "name": "Notify via Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1850, 200],
+      "credentials": {
+        "telegramApi": {
+          "id": "YOUR_TELEGRAM_CREDENTIAL_ID",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "result",
+              "name": "result",
+              "value": "=Skipped: {{ $json.company_name }} (Score: {{ $json.score }})",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "skip-low-score",
+      "name": "Skip Low Score",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [1650, 600]
+    }
+  ],
+  "connections": {
+    "When clicking 'Test workflow'": {
+      "main": [
+        [
+          {
+            "node": "Company to Research",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Company to Research": {
+      "main": [
+        [
+          {
+            "node": "Research Company via Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Research Company via Agent": {
+      "main": [
+        [
+          {
+            "node": "Prepare for AI Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare for AI Analysis": {
+      "main": [
+        [
+          {
+            "node": "AI Lead Qualifier Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Lead Qualifier Agent": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI GPT-4": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Lead Qualifier Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Decision": {
+      "main": [
+        [
+          {
+            "node": "Route by Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Score": {
+      "main": [
+        [
+          {
+            "node": "Save High Priority Prospect",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save to Nurture List",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Skip Low Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save High Priority Prospect": {
+      "main": [
+        [
+          {
+            "node": "Notify via Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2026-01-03T00:00:00.000Z",
+  "versionId": "1"
+}

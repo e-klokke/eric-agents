@@ -1,0 +1,510 @@
+{
+  "name": "AI Agent: PDC Partner Qualifier",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-trigger",
+      "name": "When clicking 'Test workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "partner_name",
+              "name": "partner_name",
+              "value": "John Smith",
+              "type": "string"
+            },
+            {
+              "id": "organization",
+              "name": "organization",
+              "value": "Premier Wealth Management",
+              "type": "string"
+            },
+            {
+              "id": "partner_type",
+              "name": "partner_type",
+              "value": "wealth_manager",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "set-partner",
+      "name": "Partner to Research",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://YOUR-APP.up.railway.app/trigger/research/pdc",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"researchType\": \"collaboration\",\n  \"organizationName\": \"{{ $json.organization }}\",\n  \"contactName\": \"{{ $json.partner_name }}\",\n  \"collaborationType\": \"{{ $json.partner_type }}\"\n}",
+        "options": {}
+      },
+      "id": "research-partner",
+      "name": "Research Partner via Agent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [650, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "Eric Agents API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "research_data",
+              "name": "research_data",
+              "value": "={{ JSON.stringify($json.data) }}",
+              "type": "string"
+            },
+            {
+              "id": "partner_name",
+              "name": "partner_name",
+              "value": "={{ $('Partner to Research').item.json.partner_name }}",
+              "type": "string"
+            },
+            {
+              "id": "organization",
+              "name": "organization",
+              "value": "={{ $('Partner to Research').item.json.organization }}",
+              "type": "string"
+            },
+            {
+              "id": "partner_type",
+              "name": "partner_type",
+              "value": "={{ $('Partner to Research').item.json.partner_type }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "prepare-for-ai",
+      "name": "Prepare for AI Analysis",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "=You are an expert partnership qualifier for Players Development Club (PDC).\n\nPDC BACKGROUND:\n- Founded by Eric Wright (10-year pro basketball player, 5 European championships)\n- Focus: Mental game development for high school and college athletes\n- Services: 1-on-1 coaching, group programs, parent education\n- Target: Serious athletes ages 14-22 and their families\n- Geography: Tampa Bay area, expanding to Florida and Southeast US\n\nIDEAL PARTNER TYPES:\n\n1. WEALTH MANAGERS / FINANCIAL ADVISORS\n- Serve high-net-worth sports families\n- Focus on athlete financial planning or NIL guidance\n- Located in Florida or Southeast US\n- Have existing athlete/sports family clients\n- Interest in holistic family services (not just investments)\n\n2. NIL COLLECTIVES / AGENCIES\n- Work with college athletes on NIL deals\n- Focus on athlete development (not just transactions)\n- Value character and mental game\n- Open to partnerships that develop whole athlete\n\n3. SCHOOLS / ATHLETIC PROGRAMS\n- High schools with competitive sports programs\n- Prep schools or sports academies\n- Athletic directors who care about mental game\n- Located within 50 miles of Tampa Bay\n\nPARTNERSHIP FIT INDICATORS:\n- Shared values (character, development, long-term thinking)\n- Complementary services (we don't compete)\n- Existing athlete/family relationships we can serve\n- Geographic overlap or digital capability\n- Budget/willingness to invest in athlete development\n- Referral potential (they send families to us)\n- Co-marketing opportunities\n\nYOUR TASK:\nAnalyze the research data and determine:\n1. Alignment Score (0-10) - How good is this partnership fit?\n2. Fit Factors - What makes them a good/bad partner?\n3. Partnership Type - referral_partner, co_marketing, or skip\n4. Outreach Priority - high, medium, or low\n5. Reasoning - Brief explanation\n6. Partnership Angle - What value proposition to lead with\n\nOUTPUT FORMAT (JSON):\n{\n  \"alignmentScore\": 8,\n  \"fitFactors\": [\"Serves 50+ athlete families\", \"NIL expertise\", \"Tampa-based\", \"Values-aligned\"],\n  \"partnershipType\": \"referral_partner\",\n  \"priority\": \"high\",\n  \"reasoning\": \"Strong fit: serves our exact target market, complementary services, shared geography. Wealth manager specializing in sports families with NIL focus.\",\n  \"partnershipAngle\": \"We help their athlete families develop the mental game and character that leads to long-term success - complements their financial planning.\",\n  \"nextSteps\": \"LinkedIn connection request highlighting complementary services, then propose coffee meeting to discuss mutual referrals\"\n}\n\nBe analytical but focus on partnership potential, not just credentials."
+        },
+        "promptType": "define",
+        "text": "=Analyze this {{ $json.partner_type }} research data and determine if {{ $json.partner_name }} from {{ $json.organization }} would be a good PDC partner:\n\n{{ $json.research_data }}\n\nProvide your analysis as JSON with alignmentScore, fitFactors, partnershipType, priority, reasoning, partnershipAngle, and nextSteps."
+      },
+      "id": "ai-agent",
+      "name": "AI Partner Qualifier Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.6,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "options": {
+          "temperature": 0.3
+        }
+      },
+      "id": "openai-model",
+      "name": "OpenAI GPT-4",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1,
+      "position": [1050, 500],
+      "credentials": {
+        "openAiApi": {
+          "id": "YOUR_OPENAI_CREDENTIAL_ID",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ai_decision",
+              "name": "ai_decision",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            },
+            {
+              "id": "alignment_score",
+              "name": "alignment_score",
+              "value": "={{ JSON.parse($json.output).alignmentScore }}",
+              "type": "number"
+            },
+            {
+              "id": "partnership_type",
+              "name": "partnership_type",
+              "value": "={{ JSON.parse($json.output).partnershipType }}",
+              "type": "string"
+            },
+            {
+              "id": "priority",
+              "name": "priority",
+              "value": "={{ JSON.parse($json.output).priority }}",
+              "type": "string"
+            },
+            {
+              "id": "reasoning",
+              "name": "reasoning",
+              "value": "={{ JSON.parse($json.output).reasoning }}",
+              "type": "string"
+            },
+            {
+              "id": "partner_name",
+              "name": "partner_name",
+              "value": "={{ $('Partner to Research').item.json.partner_name }}",
+              "type": "string"
+            },
+            {
+              "id": "organization",
+              "name": "organization",
+              "value": "={{ $('Partner to Research').item.json.organization }}",
+              "type": "string"
+            },
+            {
+              "id": "partner_type_input",
+              "name": "partner_type_input",
+              "value": "={{ $('Partner to Research').item.json.partner_type }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "parse-ai-decision",
+      "name": "Parse AI Decision",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "high-priority",
+              "leftValue": "={{ $json.alignment_score }}",
+              "rightValue": 7,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            },
+            {
+              "id": "medium-priority",
+              "leftValue": "={{ $json.alignment_score }}",
+              "rightValue": 4,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "route-by-score",
+      "name": "Route by Score",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [1450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": {
+          "__rl": true,
+          "value": "pdc_partner_prospects",
+          "mode": "list",
+          "cachedResultName": "pdc_partner_prospects"
+        },
+        "data": {
+          "values": [
+            {
+              "column": "partner_type",
+              "value": "={{ $json.partner_type_input }}"
+            },
+            {
+              "column": "name",
+              "value": "={{ $json.partner_name }}"
+            },
+            {
+              "column": "organization",
+              "value": "={{ $json.organization }}"
+            },
+            {
+              "column": "alignment_score",
+              "value": "={{ $json.alignment_score }}"
+            },
+            {
+              "column": "status",
+              "value": "identified"
+            },
+            {
+              "column": "notes",
+              "value": "={{ $json.reasoning }}"
+            },
+            {
+              "column": "metadata",
+              "value": "={{ JSON.stringify({ ai_decision: $json.ai_decision, priority: $json.priority }) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "save-high-priority",
+      "name": "Save High Priority Partner",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1650, 200],
+      "credentials": {
+        "supabaseApi": {
+          "id": "YOUR_SUPABASE_CREDENTIAL_ID",
+          "name": "Eric Agents Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": {
+          "__rl": true,
+          "value": "pdc_partner_prospects",
+          "mode": "list",
+          "cachedResultName": "pdc_partner_prospects"
+        },
+        "data": {
+          "values": [
+            {
+              "column": "partner_type",
+              "value": "={{ $json.partner_type_input }}"
+            },
+            {
+              "column": "name",
+              "value": "={{ $json.partner_name }}"
+            },
+            {
+              "column": "organization",
+              "value": "={{ $json.organization }}"
+            },
+            {
+              "column": "alignment_score",
+              "value": "={{ $json.alignment_score }}"
+            },
+            {
+              "column": "status",
+              "value": "identified"
+            },
+            {
+              "column": "notes",
+              "value": "={{ $json.reasoning }}"
+            },
+            {
+              "column": "metadata",
+              "value": "={{ JSON.stringify({ ai_decision: $json.ai_decision, priority: $json.priority }) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "save-nurture",
+      "name": "Save to Nurture List",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1650, 400],
+      "credentials": {
+        "supabaseApi": {
+          "id": "YOUR_SUPABASE_CREDENTIAL_ID",
+          "name": "Eric Agents Supabase"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "=🎯 **HIGH PRIORITY PARTNER**\n\n**Partner:** {{ $json.partner_name }}\n**Organization:** {{ $json.organization }}\n**Type:** {{ $json.partner_type_input }}\n**Alignment Score:** {{ $json.alignment_score }}/10\n\n**Reasoning:**\n{{ $json.reasoning }}\n\n**Partnership Angle:**\n{{ JSON.parse($json.ai_decision).partnershipAngle }}\n\n**Next Steps:**\n{{ JSON.parse($json.ai_decision).nextSteps }}",
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "additionalFields": {}
+      },
+      "id": "notify-telegram",
+      "name": "Notify via Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1850, 200],
+      "credentials": {
+        "telegramApi": {
+          "id": "YOUR_TELEGRAM_CREDENTIAL_ID",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "result",
+              "name": "result",
+              "value": "=Skipped: {{ $json.partner_name }} (Score: {{ $json.alignment_score }})",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "skip-low-score",
+      "name": "Skip Low Score",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [1650, 600]
+    }
+  ],
+  "connections": {
+    "When clicking 'Test workflow'": {
+      "main": [
+        [
+          {
+            "node": "Partner to Research",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Partner to Research": {
+      "main": [
+        [
+          {
+            "node": "Research Partner via Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Research Partner via Agent": {
+      "main": [
+        [
+          {
+            "node": "Prepare for AI Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare for AI Analysis": {
+      "main": [
+        [
+          {
+            "node": "AI Partner Qualifier Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Partner Qualifier Agent": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Decision",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI GPT-4": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Partner Qualifier Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Decision": {
+      "main": [
+        [
+          {
+            "node": "Route by Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Score": {
+      "main": [
+        [
+          {
+            "node": "Save High Priority Partner",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save to Nurture List",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Skip Low Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save High Priority Partner": {
+      "main": [
+        [
+          {
+            "node": "Notify via Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2026-01-03T00:00:00.000Z",
+  "versionId": "1"
+}

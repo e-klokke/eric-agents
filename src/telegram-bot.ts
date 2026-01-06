@@ -181,7 +181,7 @@ ${sources}
     const chatId = msg.chat.id;
     if (!isAllowed(msg.from!.id)) return unauthorized(chatId);
 
-    const args = match![1].split(",").map((s) => s.trim());
+    const args = match![1].split(",").map((s: string) => s.trim());
     const [name, company] = args;
 
     const validation = validateInput(PersonalLeadInputSchema, { name, company });
@@ -224,7 +224,7 @@ ${result.suggestedApproach || "No specific approach"}
     const chatId = msg.chat.id;
     if (!isAllowed(msg.from!.id)) return unauthorized(chatId);
 
-    const args = match![1].split(",").map((s) => s.trim());
+    const args = match![1].split(",").map((s: string) => s.trim());
     const [targetArea, targetSegment] = args;
 
     const validation = validateInput(PDCLeadInputSchema, {
@@ -335,7 +335,7 @@ ${result.outreachStrategy?.suggestedMessage || "None"}
     const chatId = msg.chat.id;
     if (!isAllowed(msg.from!.id)) return unauthorized(chatId);
 
-    const args = match![1].split(",").map((s) => s.trim());
+    const args = match![1].split(",").map((s: string) => s.trim());
     const [companyName, website, contactName] = args;
 
     const validation = validateInput(STSLeadInputSchema, { companyName, website, contactName });
@@ -467,7 +467,7 @@ ${post.postText}
     const chatId = msg.chat.id;
     if (!isAllowed(msg.from!.id)) return unauthorized(chatId);
 
-    const args = match![1].split(",").map((s) => s.trim());
+    const args = match![1].split(",").map((s: string) => s.trim());
     const [athleteName, sport] = args;
 
     await bot.sendMessage(chatId, `🏀 Researching ${athleteName}...`);
@@ -490,10 +490,10 @@ ${post.postText}
 ${profile.background || "Not available"}
 
 *Strengths:*
-${profile.strengths?.map((s: string) => `• ${s}`).join("\n") || "• None identified"}
+${profile.strengths?.map((s: any) => `• ${s}`).join("\n") || "• None identified"}
 
 *Development Needs:*
-${profile.developmentNeeds?.map((n: string) => `• ${n}`).join("\n") || "• None identified"}
+${profile.developmentNeeds?.map((n: any) => `• ${n}`).join("\n") || "• None identified"}
 
 *Outreach Strategy:*
 ${result.outreachStrategy?.approach || "Standard outreach"}
@@ -510,7 +510,7 @@ ${result.outreachStrategy?.approach || "Standard outreach"}
     const chatId = msg.chat.id;
     if (!isAllowed(msg.from!.id)) return unauthorized(chatId);
 
-    const args = match![1].split(",").map((s) => s.trim());
+    const args = match![1].split(",").map((s: string) => s.trim());
     const [companyName, website] = args;
 
     await bot.sendMessage(chatId, `🏢 Researching ${companyName}...`);
@@ -529,7 +529,7 @@ ${result.outreachStrategy?.approach || "Standard outreach"}
 *Score:* ${result.score?.overall || 0}/10
 
 *Tech Stack:*
-${techStack.known?.map((t: string) => `• ${t}`).join("\n") || "• None identified"}
+${techStack.known?.map((t: any) => `• ${t}`).join("\n") || "• None identified"}
 
 *Partner Opportunities:*
 • Cisco: ${partners.cisco?.join(", ") || "None"}
