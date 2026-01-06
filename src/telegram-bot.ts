@@ -50,7 +50,7 @@ if (!token) {
   }
 
   // /start command
-  bot.onText(/\/start/, (msg) => {
+  bot.onText(/\/start/, (msg: TelegramBot.Message) => {
     const chatId = msg.chat.id;
     if (!isAllowed(msg.from!.id)) return unauthorized(chatId);
 
@@ -96,7 +96,7 @@ Get live answers to ANY question using real-time web data
   });
 
   // /myid command
-  bot.onText(/\/myid/, (msg) => {
+  bot.onText(/\/myid/, (msg: TelegramBot.Message) => {
     bot.sendMessage(
       msg.chat.id,
       `Your Telegram user ID: ${msg.from!.id}\nAdd this to TELEGRAM_ALLOWED_USERS env var.`
@@ -104,7 +104,7 @@ Get live answers to ANY question using real-time web data
   });
 
   // /ask command - General AI assistant with live web data
-  bot.onText(/\/ask (.+)/, async (msg, match) => {
+  bot.onText(/\/ask (.+)/, async (msg: TelegramBot.Message, match: RegExpExecArray | null) => {
     const chatId = msg.chat.id;
     if (!isAllowed(msg.from!.id)) return unauthorized(chatId);
 
@@ -177,7 +177,7 @@ ${sources}
   });
 
   // /research_personal
-  bot.onText(/\/research_personal (.+)/, async (msg, match) => {
+  bot.onText(/\/research_personal (.+)/, async (msg: TelegramBot.Message, match: RegExpExecArray | null) => {
     const chatId = msg.chat.id;
     if (!isAllowed(msg.from!.id)) return unauthorized(chatId);
 
@@ -220,7 +220,7 @@ ${result.suggestedApproach || "No specific approach"}
   });
 
   // /research_pdc_market
-  bot.onText(/\/research_pdc_market (.+)/, async (msg, match) => {
+  bot.onText(/\/research_pdc_market (.+)/, async (msg: TelegramBot.Message, match: RegExpExecArray | null) => {
     const chatId = msg.chat.id;
     if (!isAllowed(msg.from!.id)) return unauthorized(chatId);
 
@@ -277,7 +277,7 @@ ${insights?.recommendations?.slice(0, 3).map((r: any) => `• ${r}`).join("\n") 
   });
 
   // /research_pdc_collab
-  bot.onText(/\/research_pdc_collab (.+)/, async (msg, match) => {
+  bot.onText(/\/research_pdc_collab (.+)/, async (msg: TelegramBot.Message, match: RegExpExecArray | null) => {
     const chatId = msg.chat.id;
     if (!isAllowed(msg.from!.id)) return unauthorized(chatId);
 
@@ -331,7 +331,7 @@ ${result.outreachStrategy?.suggestedMessage || "None"}
   });
 
   // /research_sts
-  bot.onText(/\/research_sts (.+)/, async (msg, match) => {
+  bot.onText(/\/research_sts (.+)/, async (msg: TelegramBot.Message, match: RegExpExecArray | null) => {
     const chatId = msg.chat.id;
     if (!isAllowed(msg.from!.id)) return unauthorized(chatId);
 
@@ -383,7 +383,7 @@ ${result.techStack?.known?.map((t) => `• ${t}`).join("\n") || "• Unknown"}
   });
 
   // /content_pdc
-  bot.onText(/\/content_pdc (.+)/, async (msg, match) => {
+  bot.onText(/\/content_pdc (.+)/, async (msg: TelegramBot.Message, match: RegExpExecArray | null) => {
     const chatId = msg.chat.id;
     if (!isAllowed(msg.from!.id)) return unauthorized(chatId);
 
@@ -423,7 +423,7 @@ ${post.postText}
   });
 
   // /content_sts
-  bot.onText(/\/content_sts (.+)/, async (msg, match) => {
+  bot.onText(/\/content_sts (.+)/, async (msg: TelegramBot.Message, match: RegExpExecArray | null) => {
     const chatId = msg.chat.id;
     if (!isAllowed(msg.from!.id)) return unauthorized(chatId);
 
@@ -463,7 +463,7 @@ ${post.postText}
   });
 
   // /research_athlete - Research athlete for PDC
-  bot.onText(/\/research_athlete (.+)/, async (msg, match) => {
+  bot.onText(/\/research_athlete (.+)/, async (msg: TelegramBot.Message, match: RegExpExecArray | null) => {
     const chatId = msg.chat.id;
     if (!isAllowed(msg.from!.id)) return unauthorized(chatId);
 
@@ -506,7 +506,7 @@ ${result.outreachStrategy?.approach || "Standard outreach"}
   });
 
   // /research_company - Research company for STS
-  bot.onText(/\/research_company (.+)/, async (msg, match) => {
+  bot.onText(/\/research_company (.+)/, async (msg: TelegramBot.Message, match: RegExpExecArray | null) => {
     const chatId = msg.chat.id;
     if (!isAllowed(msg.from!.id)) return unauthorized(chatId);
 
@@ -548,7 +548,7 @@ ${result.outreachStrategy?.suggestedNextStep || "Schedule discovery call"}
   });
 
   // /pdc_followups - Check PDC follow-ups
-  bot.onText(/\/pdc_followups/, async (msg) => {
+  bot.onText(/\/pdc_followups/, async (msg: TelegramBot.Message) => {
     const chatId = msg.chat.id;
     if (!isAllowed(msg.from!.id)) return unauthorized(chatId);
 
@@ -589,7 +589,7 @@ ${followups.length > 10 ? `\n_...and ${followups.length - 10} more_` : ""}
   });
 
   // /pdc_digest - PDC enrollment digest
-  bot.onText(/\/pdc_digest/, async (msg) => {
+  bot.onText(/\/pdc_digest/, async (msg: TelegramBot.Message) => {
     const chatId = msg.chat.id;
     if (!isAllowed(msg.from!.id)) return unauthorized(chatId);
 
@@ -620,7 +620,7 @@ ${digest.needsAction?.map((a: any) => `• ${a.athleteName} - ${a.reason}`).join
   });
 
   // /sts_followups - Check STS follow-ups
-  bot.onText(/\/sts_followups/, async (msg) => {
+  bot.onText(/\/sts_followups/, async (msg: TelegramBot.Message) => {
     const chatId = msg.chat.id;
     if (!isAllowed(msg.from!.id)) return unauthorized(chatId);
 
@@ -661,7 +661,7 @@ ${followups.length > 10 ? `\n_...and ${followups.length - 10} more_` : ""}
   });
 
   // /sts_digest - STS pipeline digest
-  bot.onText(/\/sts_digest/, async (msg) => {
+  bot.onText(/\/sts_digest/, async (msg: TelegramBot.Message) => {
     const chatId = msg.chat.id;
     if (!isAllowed(msg.from!.id)) return unauthorized(chatId);
 
@@ -694,7 +694,7 @@ ${digest.needsAction?.slice(0, 5).map((a: any) => `• ${a.companyName} - ${a.re
   });
 
   // /pdc_leads - Recent PDC leads
-  bot.onText(/\/pdc_leads/, async (msg) => {
+  bot.onText(/\/pdc_leads/, async (msg: TelegramBot.Message) => {
     const chatId = msg.chat.id;
     if (!isAllowed(msg.from!.id)) return unauthorized(chatId);
 
@@ -735,7 +735,7 @@ ${leads.length > 10 ? `\n_...and ${leads.length - 10} more_` : ""}
   });
 
   // /sts_leads - Recent STS leads
-  bot.onText(/\/sts_leads/, async (msg) => {
+  bot.onText(/\/sts_leads/, async (msg: TelegramBot.Message) => {
     const chatId = msg.chat.id;
     if (!isAllowed(msg.from!.id)) return unauthorized(chatId);
 
